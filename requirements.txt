@@ -1,1 +1,3 @@
-ffmpeg
+pyee==11.0.0
+python-ffmpeg==2.0.4
+typing_extensions==4.8.0
