@@ -1,2 +1,6 @@
 .venv
 .DS_Store
+testmovie.mp4
+output_folder
+*.mov
+*.mp4
