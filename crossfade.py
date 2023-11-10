@@ -3,12 +3,13 @@ import subprocess
 import fnmatch
 import glob
 
-def extract_frames(movie_file, temp_folder):
+def extract_frames(movie_file, frame_rate, temp_folder):
     # Create the temp folder if it doesn't exist
     os.makedirs(temp_folder, exist_ok=True)
     
     # Use ffmpeg to extract frames from the movie file
-    subprocess.run(['ffmpeg', '-i', movie_file, f'{temp_folder}/{file_pattern}'])
+#    subprocess.run(['ffmpeg', '-r', f'{frame_rate}', '-i', movie_file, '-vf', 'scale=1280:trunc(ow/a/2)*2', f'{temp_folder}/{file_pattern}'])
+    subprocess.run(['ffmpeg', '-i', movie_file, '-vf', 'scale=1280:trunc(ow/a/2)*2', f'{temp_folder}/{file_pattern}'])
 
 def do_crossfade(fade_time):
     num_fade_frames = fade_time * frame_rate
@@ -43,7 +44,6 @@ def do_crossfade(fade_time):
         # Create a blended image of the start and end frame sequences
         # Using the original filenames of end_sequence so blended version replaces originals
         cmd = f"magick composite -blend {fade_percentage}% {temp_folder}/xfade-start-{start_sequence[i]} {temp_folder}/xfade-end-{end_sequence[i]} {temp_folder}/{end_sequence[i]}"
-        print(f"{cmd}")
         subprocess.run(cmd, shell=True)
 
     fileList = glob.glob(f"{temp_folder}/xfade-*.bmp")
@@ -61,26 +61,27 @@ def do_crossfade(fade_time):
         os.rename( fileList[i], temp_folder + '/' + new_name )
 
 
-def create_movie(input_folder, output_name):
+def create_movie(input_folder, frame_rate, output_name):
     # Following the advice of http://superuser.com/questions/1212023/ddg#1212038 here
     cmd = f"/usr/local/bin/ffmpeg -y -i {input_folder}/{file_pattern} -c:v libx264 -crf 10 -tune stillimage -preset veryslow {output_name}"
     subprocess.run(cmd, shell=True)
 
-# Path to the movie file you want to extract frames from
-movie_file = './testmovie.mp4'
 
-frame_rate = 30
+if __name__ == "__main__":
 
-# File gobbing pattern thingy
-file_pattern = 'frame-%04d.bmp'
+    # set some info about the movie file you want to extract frames from etc
+    input_movie_file = '/Volumes/WD4TB/4blm/2019-01-05 20.39.50.mov'
+    frame_rate = 30
+    output_movie_file = '/Users/stewart/Movies/crystals-output.mp4'
+    file_pattern = 'frame-%04d.bmp'
+    temp_folder = '/Users/stewart/.frames_temp'
 
-# Path to the temp folder where extracted frames will be saved
-temp_folder = './temp_folder'
+    # Extract frames from the movie file
+    extract_frames(input_movie_file, frame_rate, temp_folder)
 
-# Extract frames from the movie file
-extract_frames(movie_file, temp_folder)
+    # Crossfade the first and last n seconds of frames using imagemagick
+    do_crossfade(5)
 
-# Crossfade the first and last n seconds of frames using imagemagick
-do_crossfade(5)
+    # stitch the frames back together
+    create_movie(temp_folder, frame_rate, output_movie_file)
 
-create_movie(temp_folder, "output.mp4")
